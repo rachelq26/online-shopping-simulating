@@ -1,4 +1,4 @@
-namespace ShoppingApp.Models;
+namespace shopping.Models;
 
 public class User
 {

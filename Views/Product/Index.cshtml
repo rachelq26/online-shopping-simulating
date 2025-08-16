@@ -1,0 +1,190 @@
+@model IEnumerable<shopping.Models.Product>
+@{
+    ViewData["Title"] = "Products";
+}
+
+<h1>Products</h1>
+
+<div id="message" class="alert alert-info" style="display: none;"></div>
+
+@if (Model.Any())
+{
+    <div class="row">
+        <div class="col-md-8">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in Model)
+                    {
+                        <tr>
+                            <td>@product.Name</td>
+                            <td>@product.Price.ToString("C")</td>
+                            <td>@product.Description</td>
+                            <td>
+                                <input type="number" 
+                                       id="qty-@product.Id"
+                                       value="1" 
+                                       min="1" 
+                                       max="99" 
+                                       class="form-control" 
+                                       style="width: 80px;" />
+                            </td>
+                            <td>
+                                <button type="button" 
+                                        class="btn btn-primary btn-sm" 
+                                        onclick="addToCart(@product.Id, '@product.Name', @product.Price)">
+                                    Add to Cart
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else
+{
+    <p>No products available.</p>
+}
+
+<script>
+let cart = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadCartFromStorage();
+    updateCartDisplay();
+});
+
+function loadCartFromStorage() {
+    const savedCart = localStorage.getItem('shoppingCart');
+    if (savedCart) {
+        cart = JSON.parse(savedCart);
+    }
+}
+
+function saveCartToStorage() {
+    localStorage.setItem('shoppingCart', JSON.stringify(cart));
+}
+
+function addToCart(productId, productName, price) {
+    const quantity = parseInt(document.getElementById(`qty-${productId}`).value);
+    
+    if (quantity <= 0) {
+        showMessage('Quantity must be greater than 0', 'warning');
+        return;
+    }
+    
+    const existingItem = cart.find(item => item.productId === productId);
+    if (existingItem) {
+        existingItem.quantity += quantity;
+    } else {
+        cart.push({
+            productId: productId,
+            productName: productName,
+            price: price,
+            quantity: quantity
+        });
+    }
+    
+    saveCartToStorage();
+    updateCartDisplay();
+    showMessage(`Added ${quantity} ${productName}(s) to cart!`, 'success');
+}
+
+function updateCartDisplay() {
+    const cartContainer = document.getElementById('cart-items');
+    const totalElement = document.getElementById('cart-total');
+    const checkoutBtn = document.getElementById('checkout-btn');
+    
+    if (cart.length === 0) {
+        cartContainer.innerHTML = '<p class="text-muted">Your cart is empty</p>';
+        totalElement.innerHTML = '<strong>Total: $0.00</strong>';
+        checkoutBtn.disabled = true;
+        return;
+    }
+    
+    let cartHtml = '';
+    let total = 0;
+    
+    cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        
+        cartHtml += `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <strong>${item.productName}</strong><br>
+                    <small class="text-muted">$${item.price} x ${item.quantity}</small>
+                </div>
+                <div>
+                    <span class="text-success">$${itemTotal.toFixed(2)}</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    cartContainer.innerHTML = cartHtml;
+    totalElement.innerHTML = `<strong>Total: $${total.toFixed(2)}</strong>`;
+    checkoutBtn.disabled = false;
+}
+
+async function checkout() {
+    if (cart.length === 0) {
+        showMessage('Your cart is empty', 'warning');
+        return;
+    }
+    
+    try {
+        const orderData = {
+            userId: 1, // In a real app, this would come from authentication
+            items: cart.map(item => ({
+                productId: item.productId,
+                productName: item.productName,
+                price: item.price,
+                quantity: item.quantity
+            }))
+        };
+        
+        const response = await fetch('/api/order/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showMessage(`Order #${result.orderId} created successfully!`, 'success');
+            cart = [];
+            saveCartToStorage();
+            updateCartDisplay();
+        } else {
+            showMessage(`Error: ${result.message}`, 'danger');
+        }
+    } catch (error) {
+        showMessage('Error creating order. Please try again.', 'danger');
+        console.error('Checkout error:', error);
+    }
+}
+
+function showMessage(message, type) {
+    const messageDiv = document.getElementById('message');
+    messageDiv.className = `alert alert-${type}`;
+    messageDiv.textContent = message;
+    messageDiv.style.display = 'block';
+    
+    setTimeout(() => {
+        messageDiv.style.display = 'none';
+    }, 3000);
+}
+</script>
