@@ -1,20 +1,26 @@
-namespace ShoppingApp.Models;
+namespace shopping.Models;
 
 public class Order
 {
     public int Id { get; set; }
-    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     public int UserId { get; set; }
-    public ICollection<Product> Items { get; set; } = new List<Product>();
-    public OrderStatus Status { get; set; } = OrderStatus.Pending;
+    public User User { get; set; } = null!;
+    public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
+    public OrderStatus Status { get; set; } = OrderStatus.Created;
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+    public decimal TotalAmount { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
+    public string ShippingAddress { get; set; } = string.Empty;
 }
 
 public enum OrderStatus
 {
-    Pending = 0,
+    Created = 0,
     Processing = 1,
     Shipped = 2,
     Delivered = 3,
-    Cancelled = 4
+    Cancelled = 4,
+    Unpaid = 5
 }
 
