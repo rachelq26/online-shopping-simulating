@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using shopping.Models;
 using shopping.Services;
+using shopping.DTOs.Orders;
+using shopping.Mappers;
 
 namespace shopping.Controllers;
 
@@ -17,9 +19,45 @@ public class OrderController : ControllerBase
 
 
     [HttpPost("create")]
-    public async Task<ActionResult<Order>> CreateOrder([FromBody] CreateOrderRequest request)
+    public async Task<ActionResult<OrderResponse>> CreateOrder([FromBody] CreateOrderRequest request)
     {
-        return Ok(request);
+        try
+        {
+            if (request.Items == null || !request.Items.Any())
+            {
+                return BadRequest(new { message = "No items in the order" });
+            }
+
+            if (request.UserId == 0)
+            {
+                return BadRequest(new { message = "User ID is required" }   );
+            }
+
+            var order = await _orderService.CreateOrderFromCartAsync(request.UserId, request.Items);
+            var orderResponse = OrderMapper.ToResponse(order);
+            return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, orderResponse);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            return StatusCode(500, new { message = "An unexpected error occurred while creating the order" });
+        }
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<OrderResponse>> GetOrder(int id)
+    {
+        var order = await _orderService.GetOrderByIdAsync(id);
+        if (order == null)
+        {
+            return NotFound();
+        }
+        var orderResponse = OrderMapper.ToResponse(order);
+        return Ok(orderResponse);
     }
 
     [HttpPut("{id}")]
@@ -31,12 +69,7 @@ public class OrderController : ControllerBase
         }
 
         var updatedOrder = await _orderService.UpdateOrderStatusAsync(order);
-        return Ok(updatedOrder);
+        var orderResponse = OrderMapper.ToResponse(updatedOrder);
+        return Ok(orderResponse);
     }
-}
-
-public class CreateOrderRequest
-{
-    public int UserId { get; set; }
-    public IEnumerable<OrderItem> Items { get; set; } = new List<OrderItem>();
 }

@@ -147,7 +147,6 @@ async function checkout() {
             userId: 1, // In a real app, this would come from authentication
             items: cart.map(item => ({
                 productId: item.productId,
-                productName: item.productName,
                 price: item.price,
                 quantity: item.quantity
             }))
@@ -164,7 +163,7 @@ async function checkout() {
         const result = await response.json();
         
         if (response.ok) {
-            showMessage(`Order #${result.orderId} created successfully!`, 'success');
+            showMessage(`Order #${result.Id} created successfully!`, 'success');
             cart = [];
             saveCartToStorage();
             updateCartDisplay();
