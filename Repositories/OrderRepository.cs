@@ -13,11 +13,26 @@ public class OrderRepository : IOrderRepository
         _context = context;
     }
 
+    public async Task<Order?> GetByIdAsync(int id)
+    {
+        return await _context.Orders.FirstOrDefaultAsync(o => o.Id == id);
+    }
+
     public async Task<Order> AddAsync(Order order)
     {
-        _context.Orders.Add(order);
-        await _context.SaveChangesAsync();
-        return order;
+        try
+        {
+            _context.Orders.Add(order);
+            await _context.SaveChangesAsync();
+            Console.WriteLine($"Repository: Order saved successfully with ID: {order.Id}");
+            return order;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in OrderRepository.AddAsync: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            throw;
+        }
     }
 
     public async Task<Order> UpdateAsync(Order order)
