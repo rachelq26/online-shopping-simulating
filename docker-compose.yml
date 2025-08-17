@@ -1,0 +1,11 @@
+services:
+  shopping-app:
+    build:
+      context: ./shopping_app
+      dockerfile: Dockerfile
+    container_name: shopping-app
+    ports:
+      - "5000:80"
+    environment:
+      DOTNET_ENVIRONMENT: Development
+    restart: unless-stopped
